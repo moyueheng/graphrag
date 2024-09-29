@@ -30,51 +30,56 @@ def cluster_graph(
     **_kwargs,
 ) -> TableContainer:
     """
-    Apply a hierarchical clustering algorithm to a graph. The graph is expected to be in graphml format. The verb outputs a new column containing the clustered graph, and a new column containing the level of the graph.
+    对图应用层次聚类算法。预期图以graphml格式提供。该动词输出一个包含聚类图的新列，以及一个包含图层级的新列。
 
-    ## Usage
+    ## 用法
     ```yaml
     verb: cluster_graph
     args:
-        column: entity_graph # The name of the column containing the graph, should be a graphml graph
-        to: clustered_graph # The name of the column to output the clustered graph to
-        level_to: level # The name of the column to output the level to
-        strategy: <strategy config> # See strategies section below
+        column: entity_graph # 包含图的列名，应为graphml格式的图
+        to: clustered_graph # 输出聚类图的列名
+        level_to: level # 输出层级的列名
+        strategy: <strategy config> # 见下面的策略部分
     ```
 
-    ## Strategies
-    The cluster graph verb uses a strategy to cluster the graph. The strategy is a json object which defines the strategy to use. The following strategies are available:
+    ## 策略
+    cluster_graph动词使用策略来聚类图。策略是一个定义使用方法的json对象。可用的策略如下：
 
     ### leiden
-    This strategy uses the leiden algorithm to cluster a graph. The strategy config is as follows:
+    此策略使用leiden算法来聚类图。策略配置如下：
     ```yaml
     strategy:
         type: leiden
-        max_cluster_size: 10 # Optional, The max cluster size to use, default: 10
-        use_lcc: true # Optional, if the largest connected component should be used with the leiden algorithm, default: true
-        seed: 0xDEADBEEF # Optional, the seed to use for the leiden algorithm, default: 0xDEADBEEF
-        levels: [0, 1] # Optional, the levels to output, default: all the levels detected
+        max_cluster_size: 10 # 可选，使用的最大聚类大小，默认：10
+        use_lcc: true # 可选，是否使用最大连通分量与leiden算法，默认：true
+        seed: 0xDEADBEEF # 可选，用于leiden算法的种子，默认：0xDEADBEEF
+        levels: [0, 1] # 可选，输出的层级，默认：检测到的所有层级
 
     ```
     """
+    # 获取输入数据框
     output_df = cast(pd.DataFrame, input.get_input())
+    # 对每个图应用布局算法
     results = output_df[column].apply(lambda graph: run_layout(strategy, graph))
 
     community_map_to = "communities"
     output_df[community_map_to] = results
 
+    # 设置层级列名
     level_to = level_to or f"{to}_level"
+    # 提取每行的所有唯一层级
     output_df[level_to] = output_df.apply(
         lambda x: list({level for level, _, _ in x[community_map_to]}), axis=1
     )
+    # 初始化聚类图列
     output_df[to] = [None] * len(output_df)
 
     num_total = len(output_df)
 
-    # Create a seed for this run (if not provided)
+    # 为此次运行创建种子（如果未提供）
     seed = strategy.get("seed", Random().randint(0, 0xFFFFFFFF))  # noqa S311
 
-    # Go through each of the rows
+    # 遍历每一行
     graph_level_pairs_column: list[list[tuple[int, str]]] = []
     for _, row in progress_iterable(
         output_df.iterrows(), callbacks.progress, num_total
@@ -82,7 +87,7 @@ def cluster_graph(
         levels = row[level_to]
         graph_level_pairs: list[tuple[int, str]] = []
 
-        # For each of the levels, get the graph and add it to the list
+        # 对每个层级，获取图并添加到列表中
         for level in levels:
             graph = "\n".join(
                 nx.generate_graphml(
@@ -98,16 +103,16 @@ def cluster_graph(
         graph_level_pairs_column.append(graph_level_pairs)
     output_df[to] = graph_level_pairs_column
 
-    # explode the list of (level, graph) pairs into separate rows
+    # 将(level, graph)对列表展开为单独的行
     output_df = output_df.explode(to, ignore_index=True)
 
-    # split the (level, graph) pairs into separate columns
-    # TODO: There is probably a better way to do this
+    # 将(level, graph)对分割为单独的列
+    # TODO: 可能有更好的方法来做这个, FIX: 报错了, ValueError: Columns must be same length as key
     output_df[[level_to, to]] = pd.DataFrame(
         output_df[to].tolist(), index=output_df.index
     )
 
-    # clean up the community map
+    # 清理社区映射
     output_df.drop(columns=[community_map_to], inplace=True)
 
     return TableContainer(table=output_df)

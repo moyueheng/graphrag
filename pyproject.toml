@@ -25,6 +25,11 @@ license = "MIT"
 readme = "README.md"
 packages = [{ include = "graphrag" }]
 
+[[tool.poetry.source]]
+name = 'tsinghua'
+url = 'https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple'
+priority = "primary"
+
 [tool.poetry.urls]
 "Source" = "https://github.com/microsoft/graphrag"
 
@@ -87,6 +92,7 @@ azure-identity = "^1.17.1"
 json-repair = "^0.28.4"
 
 future = "^1.0.0" # Needed until graspologic fixes their dependency
+flask = "^3.0.3"
 
 [tool.poetry.group.dev.dependencies]
 coverage = "^7.6.0"

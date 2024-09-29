@@ -53,6 +53,11 @@ class OpenAIChatLLM(BaseLLM[CompletionInput, CompletionOutput]):
         completion = await self.client.chat.completions.create(
             messages=messages, **args
         )
+        # 记录输入日志
+        log.info(f"OpenAI Chat LLM Input: {input}")
+
+        # 记录输出日志
+        log.info(f"OpenAI Chat LLM Output: {completion.choices[0].message.content}")
         return completion.choices[0].message.content
 
     async def _invoke_json(

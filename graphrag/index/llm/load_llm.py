@@ -182,6 +182,22 @@ def _load_azure_openai_embeddings_llm(
     return _load_openai_embeddings_llm(on_error, cache, config, True)
 
 
+# def _load_ollama_completion_llm(
+#     on_error: ErrorHandlerFn, cache: LLMCache, config: dict[str, Any]
+# ):
+#     return _load_openai_completion_llm(on_error, cache, config, False)
+
+# def _load_ollama_chat_llm(
+#     on_error: ErrorHandlerFn, cache: LLMCache, config: dict[str, Any]
+# ):
+#     return _load_openai_chat_llm(on_error, cache, config, False)
+
+# def _load_ollama_embeddings_llm(
+#     on_error: ErrorHandlerFn, cache: LLMCache, config: dict[str, Any]
+# ):
+#     return _load_openai_embeddings_llm(on_error, cache, config, False)
+
+
 def _get_base_config(config: dict[str, Any]) -> dict[str, Any]:
     api_key = config.get("api_key")
 
